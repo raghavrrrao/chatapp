@@ -1,41 +1,47 @@
 const express = require("express");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const mongoose = require("mongoose");
+const http = require("http");
+const { Server } = require("socket.io");
 const Message = require("./models/Message");
+
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
+
 const PORT = 3000;
 
-// MongoDB Atlas URI
-const uri = "mongodb://raoraghav28_db_user:Chatapp123@ac-c26nqnl-shard-00-00.wbekswv.mongodb.net:27017,ac-c26nqnl-shard-00-01.wbekswv.mongodb.net:27017,ac-c26nqnl-shard-00-02.wbekswv.mongodb.net:27017/?ssl=true&replicaSet=atlas-70bdex-shard-0&authSource=admin&appName=Cluster0";
+const uri = "mongodb://raoraghav28_db_user:Chatapp123@ac-c26nqnl-shard-00-00.wbekswv.mongodb.net:27017,ac-c26nqnl-shard-00-01.wbekswv.mongodb.net:27017,ac-c26nqnl-shard-00-02.wbekswv.mongodb.net:27017/chatDB?ssl=true&replicaSet=atlas-70bdex-shard-0&authSource=admin&retryWrites=true&w=majority";
 
-// Create Mongo client
-const client = new MongoClient(uri, {
-    serverApi: {
-        version: ServerApiVersion.v1,
-        strict: true,
-        deprecationErrors: true,
-    }
+mongoose.connect(uri)
+    .then(() => console.log("MongoDB Connected"))
+    .catch(err => console.log(err));
+
+app.use(express.json());
+app.use(express.static("public"));
+
+app.get("/messages", async (req, res) => {
+    const messages = await Message.find().sort({ timestamp: 1 });
+    res.json(messages);
 });
 
-// Connect to MongoDB
-async function connectDB() {
-    try {
-        await client.connect();
-        await client.db("admin").command({ ping: 1 });
-        console.log("Pinged your deployment. Successfully connected to MongoDB!");
-    } catch (error) {
-        console.error("MongoDB connection error:", error);
-    }
-}
+io.on("connection", (socket) => {
 
-// Call connection
-connectDB();
+    console.log("User connected");
 
-// Basic route
-app.get("/", (req, res) => {
-    res.send("Welcome to the Chat Application");
+    socket.on("chatMessage", async (data) => {
+
+        const msg = new Message({
+            username: data.username,
+            message: data.message
+        });
+
+        await msg.save();
+
+        io.emit("chatMessage", msg);
+    });
+
 });
 
-// Start server
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+server.listen(PORT, () => {
+    console.log(`Server running on ${PORT}`);
 });
