@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const mongoose = require("mongoose");
 const http = require("http");
@@ -10,7 +12,8 @@ const io = new Server(server);
 
 const PORT = 3000;
 
-const uri = "mongodb://raoraghav28_db_user:Chatapp123@ac-c26nqnl-shard-00-00.wbekswv.mongodb.net:27017,ac-c26nqnl-shard-00-01.wbekswv.mongodb.net:27017,ac-c26nqnl-shard-00-02.wbekswv.mongodb.net:27017/chatDB?ssl=true&replicaSet=atlas-70bdex-shard-0&authSource=admin&retryWrites=true&w=majority";
+// read from .env file
+const uri = process.env.MONGO_URI;
 
 mongoose.connect(uri)
     .then(() => console.log("MongoDB Connected"))
